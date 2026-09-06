@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="mix&match. Combine, trim, and transition your favorite audio files right in your browser. No uploads, everything stays on your device.">
+  <title>mix&match - mix your audio, match your moments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' font-family='Instrument Serif, Georgia, serif' font-style='italic'%3E%26%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="#" class="logo" aria-label="mix&match home">
+      mix<span class="logo-amp">&amp;</span>match
+    </a>
+    <nav class="nav">
+      <button type="button" class="nav-link" data-modal="how">How it works</button>
+      <button type="button" class="nav-link" data-modal="about">About</button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+
+    <!-- ============ HERO / LANDING ============ -->
+    <section id="landing-view" class="view landing-view">
+      <div class="landing-inner">
+        <h1 class="hero-title">Mix your audio. <em class="serif">Match</em> your moments.</h1>
+        <p class="hero-sub">Combine, trim, and transition your favorite audio files, right in your browser.</p>
+
+        <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Upload audio files">
+          <div class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+          </div>
+          <p class="drop-title">Drop your audio files here</p>
+          <span class="or-sep">or</span>
+          <button type="button" id="browse-btn" class="btn btn-primary">Browse files</button>
+          <p class="drop-note">MP3, WAV, OGG and more · Your files stay on your device</p>
+        </div>
+        <input type="file" id="file-input" accept="audio/*" multiple hidden>
+      </div>
+    </section>
+
+    <!-- ============ EMPTY STATE (after tracks removed) ============ -->
+    <section id="empty-view" class="view hidden">
+      <div class="empty-card">
+        <div class="empty-note">Ready when you are.</div>
+        <p class="empty-sub">Drop your tracks here and start mixing.</p>
+        <button type="button" id="empty-add-btn" class="btn btn-primary">
+          <span class="plus" aria-hidden="true">+</span> Add audio
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ EDITOR ============ -->
+    <section id="editor-view" class="view hidden" aria-label="Audio editor">
+      <div class="editor-head">
+        <h2 class="editor-title">Your mix</h2>
+        <p class="editor-hint">Drag tracks to reorder · pull handles to trim · add transitions in between</p>
+      </div>
+      <div id="track-list" class="track-list" aria-live="polite"></div>
+      <div class="editor-add">
+        <button type="button" id="add-more-btn" class="btn btn-ghost btn-add-more">
+          <span class="plus" aria-hidden="true">+</span> Add more audio
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ BOTTOM CONTROL BAR ============ -->
+  <footer id="control-bar" class="control-bar hidden">
+    <div class="cb-time cb-time-left">
+      <span id="cb-current">0:00</span>
+      <span class="cb-sep">/</span>
+      <span id="cb-total">0:00</span>
+    </div>
+
+    <div class="cb-center">
+      <button type="button" id="play-btn" class="play-btn" aria-label="Play whole mix">
+        <svg class="ic-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg class="ic-pause hidden" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z"/></svg>
+      </button>
+      <input type="range" id="scrubber" class="scrubber" min="0" max="100" step="0.01" value="0" aria-label="Seek through mix">
+    </div>
+
+    <div class="cb-right">
+      <button type="button" id="export-btn" class="btn btn-primary btn-export">Export Audio</button>
+    </div>
+  </footer>
+
+  <!-- ============ TRANSITION POPOVER ROOT ============ -->
+  <div id="transition-popover" class="transition-popover hidden" role="dialog" aria-label="Transition settings"></div>
+
+  <!-- ============ EXPORT OVERLAY ============ -->
+  <div id="export-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Export audio">
+    <div class="overlay-card export-card">
+      <div id="export-progress-state" class="export-state">
+        <div class="spinner" aria-hidden="true"></div>
+        <h2 class="export-title">Mixing your tracks...</h2>
+        <div class="export-track"><i></i></div>
+        <p class="export-sub">Trimming, fading, and blending. Everything stays on your device.</p>
+      </div>
+      <div id="export-done-state" class="export-state hidden">
+        <div class="export-check" aria-hidden="true">✓</div>
+        <h2 class="export-title">Your mix is ready.</h2>
+        <p class="export-sub">A fresh WAV file, right where you left it.</p>
+        <div class="export-actions">
+          <button id="download-btn" class="btn btn-primary btn-lg">Download WAV</button>
+          <button id="export-close-btn" class="btn btn-ghost">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOW MODAL ============ -->
+  <div id="modal-how" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="overlay-card modal-card">
+      <button class="modal-close" data-close="how" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 class="modal-title">How it works</h2>
+      <ol class="modal-list">
+        <li><span>1</span>Drop as many audio files as you like: MP3, WAV, OGG and more. Nothing leaves your device.</li>
+        <li><span>2</span>Drag tracks to set the order, and drag the handles on each waveform to trim in and out.</li>
+        <li><span>3</span>Add a transition between any two tracks: a crossfade, or a fade-out into fade-in.</li>
+        <li><span>4</span>Preview the whole sequence, then hit <strong>Export Audio</strong> to render and download an uncompressed WAV right in your browser.</li>
+      </ol>
+      <div class="modal-note">Tip: MP3 export is on the roadmap. The architecture makes it pluggable.</div>
+    </div>
+  </div>
+
+  <!-- ============ ABOUT MODAL ============ -->
+  <div id="modal-about" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="overlay-card modal-card">
+      <button class="modal-close" data-close="about" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 class="modal-title">About mix&amp;match</h2>
+      <p class="modal-body">mix&amp;match is a minimal, cozy little audio editor that lives entirely in your browser. Combine, trim, and transition your favourite recordings into one seamless mix, with the Web Audio API doing all the heavy lifting.</p>
+      <p class="modal-body">No accounts. No uploads. No clouds. Your sound never leaves your machine.</p>
+      <div class="modal-sign">the mix&amp;match folks</div>
+    </div>
+  </div>
+
+  <div id="drag-ghost" class="drag-ghost hidden" aria-hidden="true"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/waveform.js"></script>
+  <script src="js/audio-engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
