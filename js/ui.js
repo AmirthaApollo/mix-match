@@ -862,7 +862,7 @@
     renderEditor();
     updatePopoverActive();
     MMix.App.updateControlBar && MMix.App.updateControlBar();
-    scheduleRescheduleIfPlaying(120);
+    scheduleRescheduleIfPlaying(0);
   }
 
   function onResize() {
