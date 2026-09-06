@@ -74,6 +74,23 @@
         list.appendChild(buildTransitionRow(tr, tracks[i + 1], i));
       }
     });
+
+    // Cards are drawn before layout settles, so pixels can end up blank
+    // (canvas sized 1x1). Always redraw once the browser has laid things out
+    // so the waveforms stay visible no matter what triggered the re-render.
+    scheduleWaveRedraw();
+  }
+
+  // Redraw every waveform after the next layout pass(es).
+  function scheduleWaveRedraw() {
+    const draw = () => onResize();
+    if (window.requestAnimationFrame) {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(draw);
+      });
+    } else {
+      setTimeout(draw, 0);
+    }
   }
 
   function renderEmpty(container) {
