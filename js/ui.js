@@ -557,6 +557,7 @@
       renderEditor();
       window.dispatchEvent(new CustomEvent("mm:orderchanged"));
       if (window.MMix && MMix.App && MMix.App.updateControlBar) MMix.App.updateControlBar();
+      scheduleRescheduleIfPlaying(0);
     }
   }
 
@@ -722,11 +723,22 @@
   let _trimDrag = null;
   let _seekDrag = null;
   let _trimResched = null;
+  let _trimLiveLast = 0;
   // Re-sync running playback to the latest trim, debounced for live typing.
   function scheduleRescheduleIfPlaying(delay) {
     if (!window.MMix || !MMix.App || !MMix.App.rescheduleIfPlaying) return;
     clearTimeout(_trimResched);
     _trimResched = setTimeout(MMix.App.rescheduleIfPlaying, delay == null ? 160 : delay);
+  }
+  // During a trim-handle drag, restart playback from the live position at a
+  // throttled cadence so the audio tracks the handle in real time.
+  function rescheduleLiveDuringTrim() {
+    if (!window.MMix || !MMix.App || !MMix.App.rescheduleIfPlaying) return;
+    const now = performance.now();
+    if (now - _trimLiveLast < 90) return;
+    _trimLiveLast = now;
+    clearTimeout(_trimResched);
+    MMix.App.rescheduleIfPlaying();
   }
 
   function onListPointerDown(e) {
@@ -783,6 +795,7 @@
       const t = _trimDrag.xToTime(e.clientX);
       applyTrimDrag(t);
       updateSingleGeometry(_trimDrag.card, _trimDrag.tr);
+      rescheduleLiveDuringTrim();
       return;
     }
     if (_drag) {
