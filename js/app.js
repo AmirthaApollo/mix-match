@@ -185,14 +185,17 @@
   function togglePlay() {
     if (playing) { pauseMix(); return; }
     if (!store.tracks.length) return;
-    if (playheadTime >= (mixPlayback ? mixPlayback.total : 0)) playheadTime = 0;
+    const tl = audio.buildTimeline(store);
+    if (tl.total <= 0) return;
+    if (playheadTime >= tl.total) playheadTime = 0;
     playMix(playheadTime);
   }
 
-  // After a trim (or any timeline mutation) happens while the mix is playing,
+  // After a trim (or any timeline mutation) happens while audio is playing,
   // re-schedule playback from the current position so the audio follows the
   // adjusted (trimmed) song in real time instead of continuing the old range.
   function rescheduleIfPlaying() {
+    if (store.soloTrackId) { rescheduleSoloIfPlaying(); return; }
     if (!store.playing) return;
     const tl = audio.buildTimeline(store);
     if (tl.total <= 0.001) { pauseMix(); return; }
@@ -280,13 +283,27 @@
   function wireControlBar() {
     playBtn.addEventListener("click", togglePlay);
 
+    let scrubWasPlaying = false;
     scrubber.addEventListener("pointerdown", () => {
+      scrubWasPlaying = playing;
       if (playing) pauseMix();
     });
     scrubber.addEventListener("input", () => {
       playheadTime = parseFloat(scrubber.value) || 0;
       cbCurrent.textContent = fmt(playheadTime);
       updatePlayheadUI();
+    });
+    const resumeAfterScrub = (e) => {
+      const nudge = (e && (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Home" || e.key === "End")) || false;
+      if (!scrubWasPlaying) return;
+      if (nudge && playing) return;
+      scrubWasPlaying = false;
+      if (!store.tracks.length) return;
+      playMix(playheadTime);
+    };
+    scrubber.addEventListener("pointerup", resumeAfterScrub);
+    scrubber.addEventListener("keyup", (e) => {
+      if (e.target === scrubber) resumeAfterScrub(e);
     });
 
     document.addEventListener("keydown", (e) => {
@@ -300,11 +317,12 @@
   /* =========================================================
      SOLO (per-track preview)
   ========================================================= */
-  function toggleSolo(trackId) {
-    if (store.soloTrackId === trackId) { stopSolo(); return; }
-    pauseMix();
+  // Start (or restart) solo playback of a track at `offsetIntoTrim` seconds
+  // into the current trimmed selection. Keeps the playhead continuous.
+  function startSolo(trackId, offsetIntoTrim) {
+    stopSolo();
     const tr = state.getTrack(trackId);
-    if (!tr) return;
+    if (!tr) return false;
     const ctx = audio.ensureContext();
     const src = ctx.createBufferSource();
     src.buffer = tr.audioBuffer;
@@ -312,14 +330,38 @@
     g.gain.value = tr.volume / 100;
     src.connect(g);
     g.connect(ctx.destination);
+    const sel = Math.max(0.05, tr.end - tr.start);
+    const offset = Math.max(0, Math.min(sel, offsetIntoTrim || 0));
+    if (sel - offset <= 0.001) return false;
     const when = ctx.currentTime + 0.05;
-    src.start(when, tr.start, tr.end - tr.start);
+    src.start(when, tr.start + offset, sel - offset);
     store.soloTrackId = trackId;
     soloSrc = src;
     audio.registerLiveGain(trackId, g);
-    soloStartWall = performance.now() + 50;
+    soloStartWall = performance.now() + 50 - offset * 1000;
     MMix.UI.refreshSolo();
     soloTick(trackId, tr);
+    return true;
+  }
+
+  function toggleSolo(trackId) {
+    if (store.soloTrackId === trackId) { stopSolo(); return; }
+    pauseMix();
+    startSolo(trackId, 0);
+  }
+
+  // When a track is trimmed while it is being previewed solo, restart the
+  // source inside the new selection (continuing from roughly the same spot)
+  // so the audio follows the adjusted trim in real time.
+  function rescheduleSoloIfPlaying() {
+    const trackId = store.soloTrackId;
+    if (!trackId) return;
+    const tr = state.getTrack(trackId);
+    if (!tr) return;
+    const local = Math.max(0, (performance.now() - soloStartWall) / 1000);
+    const sel = tr.end - tr.start;
+    const offset = Math.max(0, Math.min(sel, local));
+    if (!startSolo(trackId, offset)) stopSolo();
   }
 
   function soloTick(trackId, tr) {
