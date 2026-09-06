@@ -55,7 +55,11 @@
       if (i > 0) {
         const prev = tracks[i - 1];
         const trans = state.getTransition(prev, tr);
-        if (trans.type === "crossfade") t -= trans.duration;
+        if (trans.type === "crossfade") {
+          // overlap can never exceed the previous track's trimmed length,
+          // otherwise the next track would start before the previous one
+          t -= Math.min(trans.duration, prev.end - prev.start);
+        }
       }
       parts.push({
         trackId: tr.id,
@@ -144,16 +148,22 @@
       const dur = part.duration - off;
       if (dur <= 0.001) continue;
 
+      // Each part plays at its own position in the timeline (matching the
+      // offline render). A part joined mid-mix starts immediately; a future
+      // part is delayed to its absolute start time so crossfade overlaps are
+      // exactly the configured duration.
+      const startAt = when + Math.max(0, part.start - fromTime);
+
       const src = ctx.createBufferSource();
       src.buffer = tr.audioBuffer;
       const g = ctx.createGain();
       g.gain.value = 0;
       src.connect(g);
       g.connect(_masterGain);
-      src.start(when, part.trimStart + off, dur);
+      src.start(startAt, part.trimStart + off, dur);
 
       const fadeIn = off > 0 ? 0 : part.fadeIn; // skip fade-in if we joined mid-fade
-      applyEnvelope(g.gain, when, dur, part.volume, fadeIn, part.fadeOut);
+      applyEnvelope(g.gain, startAt, dur, part.volume, fadeIn, part.fadeOut);
 
       _liveSources.push(src);
       _liveGains[tr.id] = g;
