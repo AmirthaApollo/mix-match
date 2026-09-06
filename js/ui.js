@@ -775,11 +775,10 @@
       if (!card) return;
       const tr = stateStore().getTrack(card.dataset.id);
       if (!tr) return;
-      const wasPlaying = MMix.store.playing;
-      if (MMix.App && MMix.App.pausePlayback) MMix.App.pausePlayback();
       const rect = wrapHit.getBoundingClientRect();
       const xToRatio = (clientX) => Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      _seekDrag = { trackId: tr.id, xToRatio, ratio: xToRatio(e.clientX), wasPlaying };
+      if (MMix.App && MMix.App.pausePlayback) MMix.App.pausePlayback();
+      _seekDrag = { trackId: tr.id, xToRatio, ratio: xToRatio(e.clientX) };
       if (MMix.App.onPlayheadDrag) MMix.App.onPlayheadDrag(_seekDrag.trackId, _seekDrag.ratio);
       return;
     }
@@ -821,9 +820,10 @@
 
   function onListPointerUp(e) {
     if (_seekDrag) {
-      const { trackId, ratio, wasPlaying } = _seekDrag;
+      const { trackId, ratio } = _seekDrag;
       _seekDrag = null;
-      if (wasPlaying && MMix.App.onPlayheadDrop) MMix.App.onPlayheadDrop(trackId, ratio);
+      // always play from the dropped position, whether it was playing or paused
+      if (MMix.App.onPlayheadDrop) MMix.App.onPlayheadDrop(trackId, ratio);
       return;
     }
     if (_trimDrag) {

@@ -283,27 +283,34 @@
   function wireControlBar() {
     playBtn.addEventListener("click", togglePlay);
 
-    let scrubWasPlaying = false;
+    let scrubActive = false;
     scrubber.addEventListener("pointerdown", () => {
-      scrubWasPlaying = playing;
+      scrubActive = true;
       if (playing) pauseMix();
+    });
+    scrubber.addEventListener("keydown", (e) => {
+      if (e.target !== scrubber) return;
+      if (!scrubActive) {
+        scrubActive = true;
+        if (playing) pauseMix();
+      }
     });
     scrubber.addEventListener("input", () => {
       playheadTime = parseFloat(scrubber.value) || 0;
       cbCurrent.textContent = fmt(playheadTime);
       updatePlayheadUI();
     });
-    const resumeAfterScrub = (e) => {
-      const nudge = (e && (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Home" || e.key === "End")) || false;
-      if (!scrubWasPlaying) return;
-      if (nudge && playing) return;
-      scrubWasPlaying = false;
+    // Seeked: play from wherever the scrubber was moved to (mouse or keys).
+    const finishScrub = () => {
+      if (!scrubActive) return;
+      scrubActive = false;
       if (!store.tracks.length) return;
       playMix(playheadTime);
     };
-    scrubber.addEventListener("pointerup", resumeAfterScrub);
+    scrubber.addEventListener("pointerup", finishScrub);
+    scrubber.addEventListener("pointercancel", finishScrub);
     scrubber.addEventListener("keyup", (e) => {
-      if (e.target === scrubber) resumeAfterScrub(e);
+      if (e.target === scrubber) finishScrub();
     });
 
     document.addEventListener("keydown", (e) => {
