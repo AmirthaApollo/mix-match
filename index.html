@@ -116,9 +116,9 @@
       <div id="export-done-state" class="export-state hidden">
         <div class="export-check" aria-hidden="true">✓</div>
         <h2 class="export-title">Your mix is ready.</h2>
-        <p class="export-sub">A fresh WAV file, right where you left it.</p>
+        <p class="export-sub">A fresh MP3 file, right where you left it.</p>
         <div class="export-actions">
-          <button id="download-btn" class="btn btn-primary btn-lg">Download WAV</button>
+          <button id="download-btn" class="btn btn-primary btn-lg">Download MP3</button>
           <button id="export-close-btn" class="btn btn-ghost">Close</button>
         </div>
       </div>
@@ -136,9 +136,9 @@
         <li><span>1</span>Drop as many audio files as you like: MP3, WAV, OGG and more. Nothing leaves your device.</li>
         <li><span>2</span>Drag tracks to set the order, and drag the handles on each waveform to trim in and out.</li>
         <li><span>3</span>Add a transition between any two tracks: a crossfade, or a fade-out into fade-in.</li>
-        <li><span>4</span>Preview the whole sequence, then hit <strong>Export Audio</strong> to render and download an uncompressed WAV right in your browser.</li>
+        <li><span>4</span>Preview the whole sequence, then hit <strong>Export Audio</strong> to render and download an MP3 right in your browser.</li>
       </ol>
-      <div class="modal-note">Tip: MP3 export is on the roadmap. The architecture makes it pluggable.</div>
+      <div class="modal-note">Everything stays on your device — no uploads, no clouds.</div>
     </div>
   </div>
 
@@ -157,6 +157,7 @@
 
   <div id="drag-ghost" class="drag-ghost hidden" aria-hidden="true"></div>
 
+  <script src="js/vendor/lame.all.js"></script>
   <script src="js/state.js"></script>
   <script src="js/waveform.js"></script>
   <script src="js/audio-engine.js"></script>

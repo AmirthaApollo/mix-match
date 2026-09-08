@@ -281,13 +281,53 @@
     return new Blob([ab], { type: "audio/wav" });
   }
 
+  /* ---------- MP3 encoding ----------
+     Pure-JS LAME port (js/vendor/lame.all.js). Converts the rendered
+     Float32 AudioBuffer to Int16 and feeds it frame-by-frame. */
+  function encodeMp3(buffer, kbps) {
+    const LameJs = window.lamejs;
+    if (!LameJs || typeof LameJs.Mp3Encoder !== "function") {
+      throw new Error("MP3 encoder could not be loaded.");
+    }
+    kbps = kbps || 192;
+    const channels = buffer.numberOfChannels > 1 ? 2 : 1;
+    const sampleRate = Math.round(buffer.sampleRate);
+    const l = buffer.getChannelData(0);
+    const r = channels > 1 ? buffer.getChannelData(1) : l;
+
+    const enc = new LameJs.Mp3Encoder(channels, sampleRate, kbps);
+    const to16 = (f) => {
+      f = Math.max(-1, Math.min(1, f));
+      return f < 0 ? Math.round(f * 0x8000) : Math.round(f * 0x7FFF);
+    };
+
+    const BLOCK = 1152;
+    const out = [];
+    let i = 0;
+    while (i < l.length) {
+      const n = Math.min(BLOCK, l.length - i);
+      const lb = new Int16Array(n);
+      const rb = new Int16Array(n);
+      for (let j = 0; j < n; j++) {
+        lb[j] = to16(l[i + j]);
+        rb[j] = to16(r[i + j]);
+      }
+      const chunk = enc.encodeBuffer(lb, rb);
+      if (chunk && chunk.length) out.push(chunk);
+      i += n;
+    }
+    const tail = enc.flush();
+    if (tail && tail.length) out.push(tail);
+    return new Blob(out, { type: "audio/mpeg" });
+  }
+
   const encoders = {
-    wav: { label: "WAV", ext: "wav", mime: "audio/wav", encode: (buf) => Promise.resolve(encodeWav(buf)) }
-    // mp3: { label: "MP3", ext: "mp3", mime: "audio/mpeg", encode: async (buf) => { ... } }
+    wav: { label: "WAV", ext: "wav", mime: "audio/wav", encode: (buf) => Promise.resolve(encodeWav(buf)) },
+    mp3: { label: "MP3", ext: "mp3", mime: "audio/mpeg", encode: (buf) => Promise.resolve(encodeMp3(buf)) }
   };
 
   async function encode(buffer, format) {
-    format = format || "wav";
+    format = format || "mp3";
     const enc = encoders[format];
     if (!enc) throw new Error("Unknown export format: " + format);
     const blob = await enc.encode(buffer);

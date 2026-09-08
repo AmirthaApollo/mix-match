@@ -443,7 +443,7 @@
     try {
       const buffer = await audio.renderMix(store, (p) => { exportBar.style.width = Math.round(p * 78) + "%"; });
       clearTimeout(progTimer);
-      const enc = await audio.encode(buffer, "wav");
+      const enc = await audio.encode(buffer, "mp3");
       exportBar.style.width = "100%";
       await new Promise(r => setTimeout(r, 260)); // let the bar visually finish
 
