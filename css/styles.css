@@ -224,6 +224,7 @@ html, body {
   margin-top: 1.6rem;
   display: flex;
   justify-content: center;
+  gap: .65rem;
 }
 .btn-add-more {
   background: transparent;
@@ -231,6 +232,7 @@ html, body {
   border-color: var(--tan);
 }
 .btn-add-more:hover { background: var(--card); color: var(--ink); border-color: var(--espresso); }
+.btn-download svg { width: 15px; height: 15px; }
 
 /* subtle ring while dragging audio files over the whole editor */
 body.is-filedragging #editor-view {

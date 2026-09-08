@@ -14,7 +14,7 @@
 
   /* ---------- DOM refs ---------- */
   let landingView, emptyView, editorView, controlBar;
-  let dropZone, fileInput, browseBtn, emptyAdd, addMoreBtn;
+  let dropZone, fileInput, browseBtn, emptyAdd, addMoreBtn, editorDownloadBtn;
   let playBtn, scrubber, cbCurrent, cbTotal, exportBtn, trackList;
   let exportOverlay, exportProgressState, exportDoneState, exportBar, downloadBtn, exportCloseBtn;
 
@@ -148,6 +148,7 @@
     cbTotal.textContent = fmt(total);
     cbCurrent.textContent = fmt(playheadTime);
     exportBtn.disabled = store.tracks.length === 0;
+    if (editorDownloadBtn) editorDownloadBtn.disabled = store.tracks.length === 0;
     updatePlayheadUI();
   }
 
@@ -478,6 +479,7 @@
 
   function wireExport() {
     exportBtn.addEventListener("click", exportMix);
+    if (editorDownloadBtn) editorDownloadBtn.addEventListener("click", exportMix);
     downloadBtn.addEventListener("click", () => {
       // blob kept client-side; download happens inside exportMix
       closeExportOverlay();
@@ -547,6 +549,7 @@
     browseBtn = $("#browse-btn");
     emptyAdd = $("#empty-add-btn");
     addMoreBtn = $("#add-more-btn");
+    editorDownloadBtn = $("#editor-download-btn");
     playBtn = $("#play-btn");
     scrubber = $("#scrubber");
     cbCurrent = $("#cb-current");
